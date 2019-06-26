@@ -1,0 +1,117 @@
+<krpano>
+
+	<!-- 自适应配置 -->
+	<krpano stagescale="calc:stagescale * 2" if="stagescale LT 1.0" devices="mobile" />
+	<!-- grid preview pano -->
+	<!-- <preview type="grid(cube,64,64,512,0xCCCCCC,0xF6F6F6,0x999999);" /> -->
+	<preview url="%$preview_url%" />
+
+	<!-- view/fov settings -->
+	<view hlookat="0" vlookat="0" fovtype="VFOV" fov="100" fovmin="30" fovmax="150" />
+
+	<image>
+		<sphere url="%$source%" />
+	</image>
+
+	<!-- 自动旋转 -->
+	<autorotate enabled="true" waittime="0" speed="5.0" horizon="0.0"/>
+
+	<!-- 全局事件监听事件 -->
+	<events 
+		onxmlcomplete="skin_showloading(true, '加载预览图...');"
+		onpreviewcomplete="skin_showloading(true, '加载高清图...');"
+		onloadcomplete="planetview();delayedcall(1, tween_normalview); skin_showloading(false);" />
+
+	<!-- 切换至小行星视角 -->
+	<action name="planetview">
+		copy(lp_hlookat, view.hlookat);
+		lookat(calc(lp_hlookat - 180), 90, 150, 1, 0, 0);
+	</action>
+
+	<!-- 动画：从小行星视角到正常视角 -->
+	<action name="tween_normalview">
+		copy(lp_hlookat, view.hlookat);
+		tween(view.hlookat|view.vlookat|view.fov|view.distortion, calc(calc(lp_hlookat + 180) + '|' + '0' + '|' + '100' + '|' + 0.0), 3.0, easeOutQuad);
+	</action>
+
+	<!-- 动画：从正常视角到小行星视角 -->
+	<action name="tween_planetview">
+		copy(lp_hlookat, view.hlookat);
+		tween(view.hlookat|view.vlookat|view.fov|view.distortion, calc(calc(lp_hlookat - 180) + '|' + '90' + '|' + '150' + '|' + 1), 3.0, easeOutQuad);
+	</action>
+
+	<!-- 显示/隐藏loading， %1是第一个参数的意思 -->
+	<action name="skin_showloading">
+		set(layer[skin_loadingtext].visible, %1);
+		if (%1 == true,
+			set(layer[skin_loadingtext].html, %2);
+			,
+			set(layer[skin_loadingtext].html, '加载中...');
+		);
+	</action>
+
+
+	<!-- loading提示 -->
+	<layer 
+		name="skin_loadingtext" 
+		type="text" 
+		align="center" 
+		x="5" 
+		y="-5" 
+		html="加载中..." 
+		visible="false" 
+		bg="false" 
+		enabled="false" 
+		css="color:#FFFFFF; font-family:Arial; text-align:center; font-style:italic; font-size:22px;" 
+		textshadow="1" />
+
+		<!-- 陀螺仪 -->
+	<plugin name="gyroscope"
+					url="lib/krpano/plugins/gyro.js"
+					keep="true"
+					devices="tablet|mobile"
+					enabled="false" />
+
+	<layer name="btn_group" keep="true" type="container" align="righttop" width="30" height="88" x="10" y="10"  alpha="1" zorder="50000">
+		<!-- 陀螺仪开关按钮 -->
+		<layer name="skin_btn_gyro_box" keep="true" type="container" align="righttop" width="30" height="30">
+			<layer name="skin_btn_gyro" type="image" visible="true" width="30" height="30" onclick="toggle_gyroscope();" devices="html5" url="icons/gyro.png"/>
+			<layer name="skin_btn_gyro_disabled" visible="true" align="rightbottom" type="image" x="6" y="6" width="5" height="5" url="icons/disabled-icon.png" />
+		</layer>
+
+		<layer name="skin_btn_planet_box" keep="true" type="container" align="righttop" width="30" height="30" y="44" >
+			<layer name="skin_btn_planet" type="image" visible="true" width="30" height="30" onclick="toggle_planet();" devices="html5" url="icons/planet.png"/>
+			<layer name="skin_btn_planet_disabled" visible="true" align="rightbottom" type="image" x="6" y="6" width="5" height="5" url="icons/disabled-icon.png" />
+		</layer>
+	</layer>
+	
+
+	<action name="toggle_gyroscope">
+		switch(plugin[gyroscope].enabled);
+		switch(layer[skin_btn_gyro_disabled].visible);
+		copy(planet_disabled, layer[skin_btn_planet_disabled].visible);
+		copy(gyroscope_enabled, plugin[gyroscope].enabled);
+		if (gyroscope_enabled, 
+			set(autorotate.enabled, false);
+			,
+			if (planet_disabled, 
+				set(autorotate.enabled, true);
+				,
+				set(autorotate.enabled, false);
+			);
+		);
+	</action>
+
+	<action name="toggle_planet">
+		copy(planet_disabled, layer[skin_btn_planet_disabled].visible);
+		if (planet_disabled,
+				tween_planetview();
+				set(autorotate.enabled, false);
+				,
+				tween_normalview();
+				set(autorotate.enabled, true);
+		);
+		switch(layer[skin_btn_planet_disabled].visible);
+	</action>
+
+</krpano>
